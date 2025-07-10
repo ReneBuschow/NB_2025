@@ -1,3 +1,8 @@
+// preamble Copryright is René + Nadine (buschow@molgen.mpg.de + brombach@molgen.mpg.de)
+// the macro was generated under Fiji 1.54V and is suppposed to run without supervision.
+
+
+
 run("Set Measurements...", "area mean standard min center perimeter bounding shape feret's redirect=None decimal=3");
 
 // Get directory from user
