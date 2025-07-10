@@ -1,3 +1,7 @@
+// preamble Copryright is René + Nadine (buschow@molgen.mpg.de + brombach@molgen.mpg.de)
+// the macro was generated under Fiji 1.54V and is suppposed to run without supervision.
+
+
 // Ask user to choose a directory
 dir = getDirectory("Choose a Directory");
 
