@@ -1,0 +1,43 @@
+setwd("O:/Data/Nadine/250515_NPM1-Laminb1_forRene/pix_results/cor")
+
+cond <- c(
+  "E12.5_NPM1-647_Laminb1-555_63x_Replikat1",
+  "E12.5_NPM1-647_Laminb1-555_63x_Replikat2",
+  "E12.5_NPM1-647_Laminb1-555_63x_Replikat3",
+  "E13.5_NPM1-647_Laminb1-555_63x_Replikat1",
+  "E13.5_NPM1-647_Laminb1-555_63x_Replikat2",
+  "E13.5_NPM1-647_Laminb1-555_63x_Replikat3",
+  "E14.5_NPM1-647_Laminb1-555_63x_Replikat1",
+  "E14.5_NPM1-647_Laminb1-555_63x_Replikat2",
+  "E14.5_NPM1-647_Laminb1-555_63x_Replikat3",
+  "E15.5_NPM1-647_Laminb1-555_63x_Replikat1",
+  "E15.5_NPM1-647_Laminb1-555_63x_Replikat2",
+  "E15.5_NPM1-647_Laminb1-555_63x_Replikat3",
+  "E16.5_NPM1-647_Laminb1-555_63x_Replikat1",
+  "E16.5_NPM1-647_Laminb1-555_63x_Replikat2",
+  "E16.5_NPM1-647_Laminb1-555_63x_Replikat3",
+  "E17.5_NPM1-647_Laminb1-555_63x_Replikat1",
+  "E17.5_NPM1-647_Laminb1-555_63x_Replikat2",
+  "E17.5_NPM1-647_Laminb1-555_63x_Replikat3"
+)
+
+for (c in 1:length(cond)) {
+  
+  files <- list.files(pattern = cond[c])
+  
+  if (length(files) == 0) {
+    message(paste("Keine Dateien gefunden für:", cond[c]))
+    next
+  }
+
+  data_raw <- read.table(files[1], header = TRUE, fill = TRUE, sep = "\t")
+
+  if (length(files) > 1) {
+    for (i in 2:length(files)) {
+      data_add <- read.table(files[i], header = TRUE, fill = TRUE, sep = "\t")
+      data_raw <- rbind(data_raw, data_add)
+    }
+  }
+
+  write.table(data_raw, paste("250521_fuse_", cond[c], ".txt", sep = ""), sep = "\t", row.names = FALSE)
+}

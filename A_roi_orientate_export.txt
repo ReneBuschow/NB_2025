@@ -1,0 +1,65 @@
+run("Set Measurements...", "area mean standard min center perimeter bounding shape feret's redirect=None decimal=3");
+
+// Get directory from user
+dir = getDirectory("Choose a Directory");
+
+// Get list of files in the directory
+files = getFileList(dir);
+
+// Create a subfolder for results
+resultsdir = dir + "results";
+File.makeDirectory(resultsdir);
+
+// Loop over all files
+for (i = 0; i < lengthOf(files); i++) 
+{
+    // Process only .tif files
+    if (endsWith(files[i], ".tif")) 
+    {
+        open(dir + files[i]);
+        name = File.nameWithoutExtension;
+
+        run("Select None");
+        run("Duplicate...", "title=raw duplicate");
+        run("Select None");
+        run("To ROI Manager");
+
+        // Count number of ROIs
+        rois = roiManager("count");
+        ang = newArray();
+
+        // Get angle of each ROI
+        for (a = 0; a < rois; a++) 
+        {
+            roiManager("select", a);
+            ang[a] = getValue("Angle");
+            print(ang[a]);
+        }
+
+        roiManager("deselect");
+        roiManager("Delete");
+
+        // Process each angle/ROI
+        for (r = 0; r < ang.length; r++) 
+        {
+            selectImage(name + ".tif");
+            run("Duplicate...", "title=" + r + " duplicate");
+            run("Rotate... ", "angle=" + ang[r] - 90 + " grid=0 interpolation=None stack");
+            run("Select None");
+            run("To ROI Manager");
+
+            roiManager("select", r);
+            run("Crop");
+
+            // Save cropped and rotated ROI
+            saveAs("Tiff", dir + "results\\" + name + "_fullroi_" + r + ".tif");
+            close();
+
+            roiManager("deselect");
+            roiManager("Delete");
+        }
+
+        // Close all images after processing each file
+        run("Close All"); 
+    }
+}

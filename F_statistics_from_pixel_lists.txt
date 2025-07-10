@@ -1,0 +1,207 @@
+#### useful
+
+help(read.table)
+
+##### initialize/load required packages
+
+#library(RColorBrewer)
+#library(zoo)
+
+##### set working directory
+
+setwd("O:/Data/Nadine/250515_NPM1-Laminb1_forRene/250602")
+
+##### needed later for plotting
+col <- colorRampPalette(c("white","cyan","lightblue","blue"))
+
+##### list all files matching a specific pattern (here containing "pix.txt")
+##### these files are stored into a new variable called `files`
+
+files <- list.files(pattern = "pix.txt")
+
+##### loop variable `f` ranging from 1 to the number of files
+
+## define loop run
+for (f in 1:length(files))
+
+## loop starts here
+{
+
+##### read table into new variable
+
+	data_all <- read.table(files[f], header = TRUE, sep="")
+
+##### extract condition name from filename (remove last 8 characters "_pix.txt")
+
+	cond <- substring(files[f],1,nchar(files[f])-8)
+
+##### filter out all background pixels (those with Parent_ID == 0)
+
+	data_foreground <- subset(data_all, data_all$Parent_ID > 0)
+
+##### identify all unique parent labels (e.g. cells)
+
+	labels <- unique(data_foreground$Parent_ID)
+
+##### define column headers for result table
+
+	colnam <- c(	"Label_ID","xpos","ypos",								#1-3
+			"npm1_dist_rho","npm1_dist_p",							#4-5
+			"lami_dist_rho","lami_dist_p",							#6-7
+			"DNA_dist_rho","DNA_dist_p",							#8-9
+			"Area in pix","total Ch1","total Ch2","total Ch3",		#10-13
+			"Nucp in pix","Nucp Ch1","Nucp Ch2","Nucp Ch3",			#14-17
+			"Nucleoli count","Nucleoli Ch1","Nucleoli Ch2","Nucleoli Ch3","Nucleoli Area",	#18-22
+			"nxpos","nypos","edgy y = 1","condition"					#23-26
+			)
+
+##### build result matrix with rows = labels and columns = parameters
+	result <- matrix(nrow=length(labels), ncol=length(colnam))
+
+########################################### start single cell
+	for (n in 1:length(labels))
+	{
+
+##### create subset for current cell (label)
+
+		data_raw <- subset(data_foreground, data_foreground$Parent_ID == labels[n])
+
+##### calculate mass center and xy min/max
+
+		xmin <- min(data_raw$X)
+		xmax <- max(data_raw$X)
+		ymin <- min(data_raw$Y)
+		ymax <- max(data_raw$Y)
+
+		centx <- (xmax - xmin) / 2 + xmin
+		centy <- (ymax - ymin) / 2 + ymin
+
+		dist_bias <- sqrt((data_raw$X - centx)^2 + (data_raw$Y - centy)^2)
+
+		x <- dist_bias
+
+##### only calculate correlation if enough data points (> 50)
+
+		if (length(dist_bias) > 50)
+		{
+			y <- data_raw$Ch1_Val
+			spearcor <- cor.test(x, y, method="spearman", na.action="na.omit")
+			main <- paste(cond," ,? = ", round(as.numeric(spearcor[4]), digits=1), sep="")
+			result[n,1] <- labels[n]
+			result[n,2] <- centx
+			result[n,3] <- centy
+			result[n,4] <- round(as.numeric(spearcor[4]), digits=2)
+			result[n,5] <- round(as.numeric(spearcor[3]), digits=4)
+
+			y <- data_raw$Ch2_Val
+			spearcor <- cor.test(x, y, method="spearman", na.action="na.omit")
+			result[n,6] <- round(as.numeric(spearcor[4]), digits=2)
+			result[n,7] <- round(as.numeric(spearcor[3]), digits=4)
+
+			y <- data_raw$Ch3_Val
+			spearcor <- cor.test(x, y, method="spearman", na.action="na.omit")
+			result[n,8] <- round(as.numeric(spearcor[4]), digits=2)
+			result[n,9] <- round(as.numeric(spearcor[3]), digits=4)
+		}
+		else
+		{
+			result[n,1] <- labels[n]
+			result[n,2] <- centx
+			result[n,3] <- centy
+			result[n,4:9] <- as.character(NA)
+		}
+
+##### sum total signal values and pixel count for the entire cell
+
+		result[n,10] <- length(data_raw[,1])
+		result[n,11] <- sum(data_raw$Ch1_Val)
+		result[n,12] <- sum(data_raw$Ch2_Val)
+		result[n,13] <- sum(data_raw$Ch3_Val)
+
+##### get all unique child objects (e.g., nucleoli)
+
+		kids <- unique(data_raw$Child_ID)
+
+##### create result matrix for children (nucleoli)
+
+		kids_result <- matrix(nrow=length(kids), ncol=5)
+
+		for (k in 1:length(kids))
+		{
+			data_kid <- subset(data_raw, data_raw$Child_ID == kids[k])
+			kids_result[k,1] <- length(data_kid[,1])
+			kids_result[k,2] <- sum(data_kid$Ch1_Val)
+			kids_result[k,3] <- sum(data_kid$Ch2_Val)
+			kids_result[k,4] <- sum(data_kid$Ch3_Val)
+			kids_result[k,5] <- kids[k]
+		}
+
+##### write info for largest object (usually the nucleolus)
+
+		result[n,14] <- kids_result[1,1]
+		result[n,15] <- kids_result[1,2]
+		result[n,16] <- kids_result[1,3]
+		result[n,17] <- kids_result[1,4]
+
+##### identify nucleoli based on size range
+
+		nucleoli <- subset(kids_result, kids_result[,1] >= 10 & kids_result[,1] <= 200)
+
+		result[n,18] <- length(nucleoli[,1])
+		result[n,19] <- sum(nucleoli[,2])
+		result[n,20] <- sum(nucleoli[,3])
+		result[n,21] <- sum(nucleoli[,4])
+		result[n,22] <- sum(nucleoli[,1])
+
+##### get center position of the largest nucleolus (if available)
+
+		if (length(length(nucleoli[,1])) > 0)
+		{
+			largest <- which.max(nucleoli[,1])
+			da_nucleoli <- subset(data_raw, data_raw$Child_ID == nucleoli[largest,5])
+
+			nxmin <- min(da_nucleoli$X)
+			nxmax <- max(da_nucleoli$X)
+			nymin <- min(da_nucleoli$Y)
+			nymax <- max(da_nucleoli$Y)
+
+			ncentx <- (nxmax - nxmin) / 2 + nxmin
+			ncenty <- (nymax - nymin) / 2 + nymin
+
+			result[n,23] <- ncentx
+			result[n,24] <- ncenty
+		}
+		else 	
+		{	
+			result[n,23] <- as.character(NA)
+			result[n,24] <- 0
+		}
+
+##### flag edge-touching cells
+
+		if (max(data_all$X) == max(data_raw$X) | max(data_all$Y) == max(data_raw$Y) |
+			min(data_all$X) == min(data_raw$X) | max(data_all$Y) == max(data_raw$Y))
+		{
+			result[n,25] <- 1
+		}
+		else
+		{
+			result[n,25] <- 0
+		}
+
+##### store condition name
+		result[n,26] <- cond
+
+################################## end single cell
+	}
+
+# Optional plotting (commented out)
+#plot(x, data_raw$Ch2_Val)
+#tiff(paste(cond,"plotto.tiff",sep=""), height=400, width=800)
+#plot(result[,3]*0.21,result[,4],type="p",main=cond,xlab="Distance [µm] top   >     bot",ylab="Center                          bias                          Edge", ylim=c(-1,1),col=rgb(239/255,124/255,0/255,0.6))
+#lines(rollmean(result[,3],5)*0.21,rollmean(result[,4],5),type="l",col=rgb(12/255,115/255,109/255,0.8),lwd=10)
+#dev.off()
+
+##### export result table to file
+write.table(result, paste("250610_", cond, "_results.txt", sep=""), sep="\t", col.names=colnam)
+}

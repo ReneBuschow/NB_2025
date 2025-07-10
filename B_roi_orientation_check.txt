@@ -1,0 +1,34 @@
+// Ask user to choose a directory
+dir = getDirectory("Choose a Directory");
+
+// Get list of files in the selected directory
+files = getFileList(dir);
+
+// Loop through all files in the directory
+for (i = 0; i < lengthOf(files); i++) 
+{
+    // Open each file
+    open(dir + files[i]);
+
+    // Set the active slice to number 3 (in case of stack)
+    setSlice(3);
+
+    // Create a dialog box to ask for rotation angle
+    Dialog.create("Rotate it?");
+    Dialog.addChoice("Degrees", newArray("0", "90", "180", "270"));
+    Dialog.show();
+
+    // Get user-selected angle
+    numb = Dialog.getChoice();
+
+    run("Select None");
+
+    // Rotate the image by the selected angle
+    run("Rotate... ", "angle=" + numb + " grid=0 interpolation=None stack");
+
+    // Save the rotated image (overwrites original!)
+    run("Save");
+
+    // Close the current image
+    close();
+}

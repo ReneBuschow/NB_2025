@@ -1,0 +1,41 @@
+// Ask user to choose a directory
+dir = getDirectory("Choose a Directory");
+
+// Get list of all files in the directory
+files = getFileList(dir);
+
+// Loop through each file
+for (i = 0; i < lengthOf(files); i++) 
+{
+    // Open the current file
+    open(dir + files[i]);
+    name = File.nameWithoutExtension;
+
+    // Check if the image has more channels than slices
+    if (channels > slices) {
+        // Duplicate only channel 3 (typically nucleus channel in multichannel images)
+        run("Duplicate...", "duplicate channels=3-3");
+        
+        // Duplicate only slice 3 from the new image
+        run("Duplicate...", "duplicate range=3-3");
+
+        // Save the result as a new Tiff file
+        saveAs("Tiff", dir + name + "nuc.tif");
+
+        // Close all images
+        run("Close All");
+    }
+    else {
+        // If not multichannel, duplicate slice 3 directly
+        run("Duplicate...", "duplicate slices=3-3");
+
+        // Duplicate the same range again (possibly redundant)
+        run("Duplicate...", "duplicate range=3-3");
+
+        // Save the result
+        saveAs("Tiff", dir + name + "nuc.tif");
+
+        // Close all images
+        run("Close All");
+    }
+}
